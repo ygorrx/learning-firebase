@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Button,
@@ -9,9 +9,22 @@ import {
   List,
   ListItem,
   ListIcon,
+  Divider,
 } from "@chakra-ui/react";
-import { collection, getDocs, updateDoc, doc, deleteDoc } from "firebase/firestore";
-import { db } from "./../firebaseConnection";
+import {
+  collection,
+  getDocs,
+  updateDoc,
+  doc,
+  deleteDoc,
+} from "firebase/firestore";
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged
+} from "firebase/auth";
+import { db, auth } from "./../firebaseConnection";
 import { FaRegNoteSticky, FaTrash } from "react-icons/fa6";
 
 interface BookFormProps {
@@ -24,11 +37,39 @@ type ListItens = {
   author: string;
 };
 
+type UserValues = {
+  uid: string;
+  email: string | null;
+};
+
 const BookForm: React.FC<BookFormProps> = ({ onSubmit }) => {
   const [title, setTitle] = useState("");
   const [author, setAuthor] = useState("");
   const [posts, setPosts] = useState<ListItens[]>([]);
   const [idPosts, setIdPosts] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [user, setUser] = useState(false);
+  const [userDetail, setUserDetail] = useState<UserValues>();
+
+  useEffect(() => {
+    async function checkLogin() {
+      onAuthStateChanged(auth, (user) => {
+        if(user){
+          setUser(true)
+          setUserDetail({
+            uid: user.uid,
+            email: user.email,
+          });
+        } else {
+          setUser(false)
+          setUserDetail({uid: '', email: ''})
+        }
+      })      
+    }
+
+    checkLogin()
+  }, [])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,18 +117,90 @@ const BookForm: React.FC<BookFormProps> = ({ onSubmit }) => {
       });
   }
 
- async function deletePost(id: string) {
-    const docRef = doc(db, "posts", id)
+  async function deletePost(id: string) {
+    const docRef = doc(db, "posts", id);
 
-    await deleteDoc(docRef)
-    .then(() => {
-      searchPost()
-    })
+    await deleteDoc(docRef).then(() => {
+      searchPost();
+    });
+  }
 
+  async function registerUser() {
+    await createUserWithEmailAndPassword(auth, email, password).then(
+      (value) => {
+        setEmail("");
+        setPassword("");
+      }
+    );
+  }
+
+  async function loginUser() {
+    await signInWithEmailAndPassword(auth, email, password).then((value) => {
+      setUserDetail({
+        uid: value.user.uid,
+        email: value.user.email,
+      });
+
+      setUser(true);
+      setEmail("");
+      setPassword("");
+    });
+  }
+
+  async function logoutUser() {
+    await signOut(auth)
+    setUser(false)
+    setUserDetail({uid: '', email: ''})
   }
 
   return (
     <Box p={4} borderWidth="1px" borderRadius="md">
+      {user && (
+        <div>
+          <strong>Welcome!</strong>
+          <br />
+          <span>
+            Id: {userDetail?.uid} - Email: {userDetail?.email}
+          </span>
+          <br/>
+          <Button type="button" onClick={logoutUser} colorScheme="purple">
+            Logout
+          </Button>
+          <br />
+          <br />
+        </div>
+      )}
+
+      <form>
+        <Stack spacing={4}>
+          <FormControl id="email">
+            <FormLabel>E-mail</FormLabel>
+            <Input
+              type="text"
+              placeholder="Enter you e-mail"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </FormControl>
+          <FormControl id="password" isRequired>
+            <FormLabel>Password</FormLabel>
+            <Input
+              type="password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </FormControl>
+          <Button type="button" onClick={registerUser} colorScheme="blue">
+            Register
+          </Button>
+          <Button type="button" onClick={loginUser} colorScheme="green">
+            Login
+          </Button>
+        </Stack>
+      </form>
+      <Divider />
+      <br />
       <form onSubmit={handleSubmit}>
         <Stack spacing={4}>
           <FormControl id="id">
@@ -145,7 +258,7 @@ const BookForm: React.FC<BookFormProps> = ({ onSubmit }) => {
                     leftIcon={<FaTrash />}
                     colorScheme="teal"
                     variant="solid"
-                    size='xs'
+                    size="xs"
                   >
                     Delete Post
                   </Button>

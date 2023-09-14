@@ -33,7 +33,7 @@ const Navbar: React.FC<HeaderProps> = () => {
           onClick={() => {}}
         />
         <Text ml={2} fontWeight="bold">
-          Your App Name
+          Learning Firebase
         </Text>
       </Flex>
 
