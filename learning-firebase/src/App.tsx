@@ -2,7 +2,7 @@ import "./App.css";
 import BookForm from "./components/BookForm";
 import Navbar from "./components/Navbar";
 import { db } from "./firebaseConnection";
-import { doc, setDoc, collection, addDoc } from "firebase/firestore";
+import { collection, addDoc } from "firebase/firestore";
 import { ChakraProvider } from "@chakra-ui/react";
 
 function App() {
@@ -36,7 +36,6 @@ function App() {
   return (
     <ChakraProvider>
       <Navbar></Navbar>
-      <h1>React + Firebase</h1>
       <BookForm onSubmit={handleFormSubmit}></BookForm>
     </ChakraProvider>
   );
